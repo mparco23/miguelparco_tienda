@@ -1,0 +1,131 @@
+CREATE DATABASE TIENDA;
+USE TIENDA;
+
+
+CREATE TABLE CATEGORIAS (
+    id INT NOT NULL,
+    nombre VARCHAR(100),
+    descripcion VARCHAR(200),
+    PRIMARY KEY (id)
+);
+
+INSERT INTO categorias (id,nombre,descripcion)  VALUES (1, 'frutas','frutas peruana');
+INSERT INTO categorias (id,nombre,descripcion)  VALUES (2, 'insumos','insumos de cocina');
+INSERT INTO categorias (id,nombre,descripcion)  VALUES (3, 'lacteos','para comer');
+
+CREATE TABLE USUARIOS (
+    id INT NOT NULL,
+    nombre VARCHAR(100),
+    email VARCHAR(200),
+    paswoord VARCHAR(2000),
+    remember_token VARCHAR(500),
+    verificado BIT,
+    verificado_token BIT,
+    admin BIT,
+    PRIMARY KEY (id)
+);
+
+INSERT INTO USUARIOS  VALUES (1, 'marco perez','m_perez@gmail.com','xxyxyyxyxyyxyxy','xxxxxxx',1,1,1);
+INSERT INTO USUARIOS  VALUES (2, 'lusi cardenas','l_cardenas@gmail.com','xxyxyyxyxyyxyxy','xxxxxxx',1,1,1);
+INSERT INTO USUARIOS  VALUES (3, 'andres urrutia','a_urrutia@gmail.com','xxyxyyxyxyyxyxy','xxxxxxx',1,1,1);
+
+CREATE TABLE PRODUCTOS (
+    id INT NOT NULL,
+    nombre VARCHAR(100),
+    descripcion VARCHAR(200),
+    cantidad INT,
+    estado BIT,
+    id_vendedor INT ,
+    PRIMARY KEY (id),
+    FOREIGN KEY (id_vendedor) REFERENCES USUARIOS(id)
+);
+
+INSERT INTO PRODUCTOS VALUES (1, 'un platano','platano de jugo',300,1,1);
+INSERT INTO PRODUCTOS VALUES (2, 'un manzana','manzana roja',200,1,1);
+INSERT INTO PRODUCTOS VALUES (3, 'un mango papaya','mango rojo',300,1,1);
+INSERT INTO PRODUCTOS VALUES (4, 'un piña','piña golden',300,1,1);
+
+CREATE TABLE CATEGORIA_PRODUCTO (
+    id_categoria INT NOT NULL,
+    id_producto INT NOT NULL,
+    PRIMARY KEY (id_categoria,id_producto),
+    FOREIGN KEY (id_categoria) REFERENCES CATEGORIAS(id),
+    FOREIGN KEY (id_producto) REFERENCES PRODUCTOS(id)
+);
+
+INSERT INTO CATEGORIA_PRODUCTO VALUES (1, 1);
+INSERT INTO CATEGORIA_PRODUCTO VALUES (1, 2);
+INSERT INTO CATEGORIA_PRODUCTO VALUES (1, 3);
+INSERT INTO CATEGORIA_PRODUCTO VALUES (1, 4);
+
+
+CREATE TABLE TRANSACCIONES (
+    id INT NOT NULL,
+    cantidad INT,
+    id_comprador INT,
+    id_producto INT,
+    PRIMARY KEY (id),
+    FOREIGN KEY (id_producto) REFERENCES PRODUCTOS(id),
+    FOREIGN KEY (id_comprador) REFERENCES USUARIOS(id)
+);
+
+INSERT INTO TRANSACCIONES VALUES (1, 1, 2, 1);
+INSERT INTO TRANSACCIONES VALUES (2, 2, 3, 1);
+INSERT INTO TRANSACCIONES VALUES (3, 3, 3, 2);
+
+delimiter //
+create procedure mantenimiento_productos(in p_id int)
+ begin
+   select id, nombre, descripcion, cantidad, estado , id_vendedor
+     from productos
+     where id = p_id;
+ end
+ //
+
+call mantenimiento_productos(1);
+'drop procedure mantenimiento_productos;
+
+delimiter //
+create procedure mantenimiento_productos(
+in
+in p_id int
+)
+ begin
+   select id, nombre, descripcion, cantidad, estado , id_vendedor
+     from productos
+     where id = p_id;
+ end
+ //
+
+
+
+delimiter //
+CREATE PROCEDURE insertar_transaccion
+(in p_id int, 
+ in p_cantidad int, 
+ in p_id_comprador INT,
+ in p_id_producto INT,
+ out resultado int)
+
+
+BEGIN
+    DECLARE count_prim INT;
+    DECLARE count_sec INT;
+    DECLARE count_ter INT;
+
+    SELECT COUNT(*) INTO count_prim FROM productos WHERE id = p_id_producto and EXISTS(SELECT COUNT(1) FROM usuarios WHERE usuarios.id = productos.id_vendedor);
+    SELECT COUNT(*) INTO count_sec FROM usuarios WHERE id = p_id_comprador;
+    SELECT COUNT(*) INTO count_ter FROM productos WHERE id = p_id_producto and cantidad - p_cantidad > 0;
+
+    if (count_prim > 0 and count_sec > 0 and count_ter > 0) then
+        set resultado = 1;
+	INSERT INTO TRANSACCIONES VALUES (p_id, p_cantidad , p_id_comprador, p_id_producto);
+    else 
+        set resultado = 0;
+    end if;
+    SELECT resultado;
+END
+//
+
+call insertar_transaccion(5,1,1,1,@resu);
+
